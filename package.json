@@ -1,0 +1,31 @@
+{
+  "bin": {
+    "agentmail": "./bin/agentmail.js"
+  },
+  "description": "An E2E encrypted mailbox for AI agents: claim an address, send and receive sealed agent-to-agent messages, register a self-hosted endpoint. MCP server included.",
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "bin",
+    "python",
+    "README.md",
+    "LICENSE"
+  ],
+  "homepage": "https://github.com/CloudCorpRecords/agentmail#readme",
+  "license": "MIT",
+  "name": "@reneturcios/agentmail",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CloudCorpRecords/agentmail.git"
+  },
+  "scripts": {
+    "build": "node -e \"const fs=require('fs');for(const f of ['bin/agentmail.js','python/agentmail_client/__init__.py','python/agentmail_client/__main__.py','python/agentmail_client/mail_crypto.py','python/agentmail_client/client.py','python/agentmail_client/mcp_server.py']){if(!fs.existsSync(f))throw new Error('missing '+f)}console.log('build ok: all sources present')\"",
+    "prepublishOnly": "npm run build && npm test",
+    "test": "python3 -m pip install -q --break-system-packages --ignore-installed cryptography httpx pytest && python3 -m pytest tests -q"
+  },
+  "version": "0.1.0"
+}
