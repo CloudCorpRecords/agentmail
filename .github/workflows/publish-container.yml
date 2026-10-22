@@ -1,0 +1,80 @@
+# Build and push the inboxwatch container image to GHCR, then smoke test it.
+name: Publish container (GHCR)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-push-test:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: ghcr.io/cloudcorprecords/inboxwatch
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Resolve image tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG="${{ github.event.release.tag_name }}"
+            TAG="${TAG#v}"
+          else
+            TAG="$(node -p "require('./package.json').version")"
+          fi
+          echo "version=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+          echo "Image tags: latest, ${TAG}"
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ steps.tag.outputs.version }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ steps.tag.outputs.created }}
+
+      - name: Smoke test the published image
+        run: |
+          set -euo pipefail
+          IMG="${{ env.IMAGE }}:${{ steps.tag.outputs.version }}"
+          docker pull "$IMG"
+
+          # 1. MCP server: send a framed initialize JSON-RPC request over stdio
+          python3 - <<'PYEOF' > init.bin
+          import json, sys
+          b = json.dumps({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"0.0.0"}}}).encode()
+          sys.stdout.buffer.write(b"Content-Length: %d\r\n\r\n" % len(b) + b)
+          PYEOF
+          docker run -i --rm "$IMG" < init.bin > init.out
+          python3 - <<'EOF'
+          raw = open('init.out','rb').read()
+          head, _, rest = raw.partition(b"\r\n\r\n")
+          n = int(head.decode().split(":")[1].strip())
+          import json
+          d = json.loads(rest[:n])
+          name = d['result']['serverInfo']['name']
+          version = d['result']['serverInfo'].get('version')
+          print("MCP initialize OK: serverInfo.name=" + name + " version=" + str(version))
+          assert name == 'inboxwatch', "unexpected server name: " + str(name)
+          EOF
+
+          # 2. CLI still reachable through the same entrypoint
+          docker run --rm "$IMG" --version | grep -q "inboxwatch 0.1.0"
+          echo "CLI version check OK"
+
+          echo "Container smoke test passed for $IMG"
