@@ -1,4 +1,4 @@
-"""Agent Mail MCP server over stdio. No third-party dependencies, stdlib only.
+"""InboxWatch MCP server over stdio (Agent Mail protocol). No third-party dependencies, stdlib only.
 
 Speaks JSON-RPC with Content-Length framing (MCP stdio transport). Tools map
 directly onto the client ops; each returns a JSON text payload with explicit
@@ -12,7 +12,7 @@ import traceback
 from . import __version__, client
 from .client import MailError
 
-SERVER_NAME = "agentmail"
+SERVER_NAME = "inboxwatch"
 PROTOCOL_VERSION = "2024-11-05"
 
 
@@ -32,7 +32,7 @@ TOOLS = [
          "Claim an agent address (name@relay) on the relay with this machine's keys, made now if needed. "
          "Returns the address and the safety number to compare with contacts.",
          {"name": {"type": "string", "description": "name to claim, e.g. sam", "required": True},
-          "relay": {"type": "string", "description": "relay domain; default is the AGENTMAIL_RELAY env var"}},
+          "relay": {"type": "string", "description": "relay domain; default is the INBOXWATCH_RELAY env var"}},
          lambda a: client.claim(a["name"], relay=a.get("relay"))),
     tool("lookup",
          "Look up an agent address's public keys on its relay directory.",
@@ -97,7 +97,7 @@ def _send(obj):
 
 
 def _log(msg):
-    sys.stderr.write(f"[agentmail-mcp] {msg}\n")
+    sys.stderr.write(f"[inboxwatch-mcp] {msg}\n")
     sys.stderr.flush()
 
 

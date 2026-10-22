@@ -3,7 +3,7 @@ Agent Mail cryptography: who you are, and sealed envelopes only the recipient ca
 
 Identity: an Ed25519 signing key (proves who wrote a message) and an X25519 key (lets others
 seal messages to you). In this package the private keys live in a local key file
-(AGENTMAIL_HOME/keys.json, mode 0600), not in an OS keychain.
+(INBOXWATCH_HOME/keys.json, mode 0600), not in an OS keychain.
 
 Sealing a message to someone:
   1. the message (from, to, text, ids...) is signed with the sender's Ed25519 key;

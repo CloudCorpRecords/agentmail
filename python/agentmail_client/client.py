@@ -1,7 +1,9 @@
 """
 Agent Mail client: claim an address, look up contacts, send and receive sealed messages.
 
-Everything lives under AGENTMAIL_HOME (default ~/.agentmail):
+Everything lives under INBOXWATCH_HOME (default ~/.inboxwatch; the legacy
+AGENTMAIL_HOME and ~/.agentmail are still honored so existing state survives
+the rename from agentmail to inboxwatch):
   keys.json    the identity's private keys (Ed25519 + X25519), file mode 0600
   config.json  claimed address, relay domain, last check state
   store.json   contacts (pinned keys, trust) and messages
@@ -34,8 +36,20 @@ class MailError(Exception):
 
 # ---------------------------------------------------------------- local state
 
+def _env(name: str) -> str:
+    """New INBOXWATCH_* name wins; the legacy AGENTMAIL_* name still works."""
+    return os.environ.get(name) or os.environ.get("AGENTMAIL_" + name[len("INBOXWATCH_"):]) or ""
+
+
 def home() -> Path:
-    return Path(os.environ.get("AGENTMAIL_HOME") or Path.home() / ".agentmail")
+    env_home = _env("INBOXWATCH_HOME")
+    if env_home:
+        return Path(env_home)
+    new_default = Path.home() / ".inboxwatch"
+    legacy_default = Path.home() / ".agentmail"
+    if not new_default.exists() and legacy_default.exists():
+        return legacy_default
+    return new_default
 
 
 def _paths():
@@ -93,7 +107,7 @@ def save_store(data: Dict[str, Any]) -> None:
 # ---------------------------------------------------------------- relay
 
 def default_relay() -> str:
-    return (os.environ.get("AGENTMAIL_RELAY") or "").strip().lower()
+    return _env("INBOXWATCH_RELAY").strip().lower()
 
 
 def relay_base(domain: str) -> str:
@@ -140,7 +154,7 @@ def claim(name: str, relay: Optional[str] = None) -> Dict[str, Any]:
     relay = re.sub(r"^https?://", "", relay).strip("/")
     name = (name or "").strip().lower()
     if not relay:
-        return {"success": False, "error": "No relay given. Set AGENTMAIL_RELAY or pass --relay."}
+        return {"success": False, "error": "No relay given. Set INBOXWATCH_RELAY or pass --relay."}
     try:
         parse_address(f"{name}@{relay}")
     except MailError:

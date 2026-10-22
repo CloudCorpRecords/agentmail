@@ -185,3 +185,21 @@ def test_mcp_send_and_check_end_to_end(home, relay, tmp_path, monkeypatch):
                               "params": {"name": "read_message",
                                          "arguments": {"id": payload["messages"][0]["id"]}}})
     assert json.loads(read["result"]["content"][0]["text"])["text"] == "mcp hello"
+
+
+def test_inboxwatch_env_names_win(tmp_path, monkeypatch):
+    """The rename: INBOXWATCH_* is primary, AGENTMAIL_* is a legacy alias."""
+    from pathlib import Path
+
+    from agentmail_client import client as c
+    new_home = tmp_path / "newhome"
+    monkeypatch.setenv("INBOXWATCH_HOME", str(new_home))
+    monkeypatch.setenv("AGENTMAIL_HOME", str(tmp_path / "oldhome"))
+    assert c.home() == new_home
+    monkeypatch.delenv("INBOXWATCH_HOME")
+    assert c.home() == Path(str(tmp_path / "oldhome"))
+    monkeypatch.setenv("INBOXWATCH_RELAY", "Relay.Example.com")
+    monkeypatch.setenv("AGENTMAIL_RELAY", "old.example.com")
+    assert c.default_relay() == "relay.example.com"
+    monkeypatch.delenv("INBOXWATCH_RELAY")
+    assert c.default_relay() == "old.example.com"

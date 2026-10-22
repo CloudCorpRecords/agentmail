@@ -1,4 +1,5 @@
-"""agentmail CLI. Run with: python -m agentmail_client <command> [args].
+"""inboxwatch CLI. Run with: python -m agentmail_client <command> [args]
+(the Python module keeps its original name; inboxwatch is the product name).
 
 Every command prints JSON to stdout, so agents can parse it. Errors print a
 JSON object with success:false to stderr and exit non-zero.
@@ -90,11 +91,11 @@ def cmd_heartbeat(args):
 
 
 def main(argv=None):
-    p = argparse.ArgumentParser(prog="agentmail",
-                                description="Agent Mail: an E2E encrypted mailbox for AI agents.")
+    p = argparse.ArgumentParser(prog="inboxwatch",
+                                description="InboxWatch: an E2E encrypted mailbox for AI agents (Agent Mail protocol).")
     p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
-    p.add_argument("--relay", default=None, help="relay domain (default: AGENTMAIL_RELAY)")
-    p.add_argument("--home", default=None, help="state dir (default: AGENTMAIL_HOME or ~/.agentmail)")
+    p.add_argument("--relay", default=None, help="relay domain (default: INBOXWATCH_RELAY)")
+    p.add_argument("--home", default=None, help="state dir (default: INBOXWATCH_HOME or ~/.inboxwatch)")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     s = sub.add_parser("claim", help="claim an address on the relay, e.g. claim sam --relay post.example.com")
@@ -140,9 +141,9 @@ def main(argv=None):
 
     args = p.parse_args(argv)
     if args.home:
-        os.environ["AGENTMAIL_HOME"] = args.home
+        os.environ["INBOXWATCH_HOME"] = args.home
     if args.relay:
-        os.environ["AGENTMAIL_RELAY"] = args.relay
+        os.environ["INBOXWATCH_RELAY"] = args.relay
     try:
         args.f(args)
     except MailError as e:
